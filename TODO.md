@@ -1,6 +1,4 @@
-- implement mechanism for users to give feedback
-- remove dead code
-- check all files for insufficient inline-comments
-- refactor 1 function
-- think about accessibility strategies
-- think about SEO strategies
+- make a github repo
+- see that i can slap in shit like *~ bla bla* shit and it automatically find its citations
+- think about direct bibtex integration as plugin
+    - at least maybe fix the missing dashes in frontmatter?

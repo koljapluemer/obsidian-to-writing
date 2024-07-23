@@ -95,8 +95,6 @@ def main():
                 write_file.write("\n")
 
 
-
-
 def hunt_citation(cited_file):
     # TODO: make this recursive
     # open cited_file
