@@ -58,19 +58,20 @@ def expand_citations(text):
         cited_file = citation.split('|')[0]
         id_cleaned = re.sub(r'\W+', '', cited_file).lower()
 
-        citation = hunt_citation(cited_file)
-        print("got citation", citation)
+        print_citation = hunt_citation(cited_file)
 
         if citation:
-            definition = f'<dfn id="citation-{id_cleaned}">**[{citation_counter}]** {citation}</dfn>'
+            definition = f'<dfn id="citation-{id_cleaned}">**[{citation_counter}]** {print_citation}</dfn>'
             citations.append(definition)
         else:
             missing_citations.append(cited_file)
 
         replace_with = f'<a href="#citation-{id_cleaned}">[{citation_counter}]</a>'
-        text = text.replace(f'@[[{citation}]]', replace_with)
+        search_term = f'@[[{citation}]]'
+        text = text.replace(search_term, replace_with)
         citation_counter += 1
 
+    # print(text)
     return text, citations, missing_citations
 
 def expand_terms(text):
