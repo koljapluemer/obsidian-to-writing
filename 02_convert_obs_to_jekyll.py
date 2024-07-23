@@ -20,6 +20,27 @@ def main():
         # definitions
         lines, definitions, missing_definitions = expand_terms(lines)
 
+        # terms may include more terms, or citations, so continously expand
+        # check if '[[' anywhere in the values of definitions dict: NOW:!!!
+        while any('[[' in value for value in definitions.values()):
+            print("continously expanding")
+            for key, value in definitions.items():
+                print("key", key)
+                print("value", value)
+                if '[[' in value:
+                    print("found a link")
+                    new_definition, new_definitions, new_missing_definitions = expand_terms(value)
+                    definitions[key] = new_definition
+                    for new_key, new_value in new_definitions.items():
+                        # only if not in dict already, add
+                        if new_key not in definitions:
+                            definitions[new_key] = new_value
+                    missing_definitions += new_missing_definitions
+
+
+
+                
+
         with open(MISSING_DEFINITIONS, "w") as missing_def_file:
             for missing_definition in missing_definitions:
                 missing_def_file.write(f'- [ ] {missing_definition}\n')
@@ -31,9 +52,7 @@ def main():
             write_file.write("## Terms")
             write_file.write("\n\n")
 
-            # make definitions unique
-            definitions = list(set(definitions))
-            for definition in definitions:
+            for key, definition in definitions.items():
                 write_file.write('- ' + definition)
                 write_file.write("\n")
 
@@ -41,14 +60,13 @@ def main():
             write_file.write("## Citations")
             write_file.write("\n\n")
 
-            citations = list(set(citations))
-            for citation in citations:
+            for key, citation in citations.items():
                 write_file.write('- ' + citation)
                 write_file.write("\n")
 
 
 def expand_citations(text):
-    citations = []
+    citations = {}
     missing_citations = []
     citation_counter = 0
     # citations
@@ -62,7 +80,7 @@ def expand_citations(text):
 
         if citation:
             definition = f'<dfn id="citation-{id_cleaned}">**[{citation_counter}]** {print_citation}</dfn>'
-            citations.append(definition)
+            citations[id_cleaned] = definition
         else:
             missing_citations.append(cited_file)
 
@@ -76,7 +94,7 @@ def expand_citations(text):
 
 def expand_terms(text):
     all_links = re.findall(r'\[\[(.*?)\]\]', text)
-    definitions = []
+    definitions = {}
     missing_definitions = []
 
     for link in all_links:
@@ -94,7 +112,7 @@ def expand_terms(text):
             text = text.replace(f'[[{link}]]', replace_with)
 
             definition = f'<dfn id="definition-{id_cleaned}">{id}:{definition}</dfn>'
-            definitions.append(definition)
+            definitions[id_cleaned] = definition
         else:
             replace_with = f'{used_form}'
             text = text.replace(f'[[{link}]]', replace_with)
