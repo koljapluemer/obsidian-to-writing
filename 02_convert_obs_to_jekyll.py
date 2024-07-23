@@ -11,62 +11,14 @@ def main():
     # convert every [[]] in a link to a <dfn> tag
     with open(FILE_PATH, "r") as f:
         lines = f.read()
-
-        citations = []
-        missing_citations = []
-        citation_counter = 0
-        # citations
-        all_citations = re.findall(r'\@\[\[(.*?)\]\]', lines)
-        for citation in all_citations:
-            print("doing citation", citation)
-            cited_file = citation.split('|')[0]
-            id_cleaned = re.sub(r'\W+', '', cited_file).lower()
-
-            citation = hunt_citation(cited_file)
-            print("got citation", citation)
-
-            if citation:
-                definition = f'<dfn id="citation-{id_cleaned}">**[{citation_counter}]** {citation}</dfn>'
-                citations.append(definition)
-            else:
-                missing_citations.append(cited_file)
-
-            replace_with = f'<a href="#citation-{id_cleaned}">[{citation_counter}]</a>'
-            lines = lines.replace(f'@[[{citation}]]', replace_with)
-            citation_counter += 1
+        lines, citations, missing_citations = expand_citations(lines)
 
         with open(MISSING_CITATIONS, "w") as missing_cite_file:
             for missing_citation in missing_citations:
                 missing_cite_file.write(f'- [ ] {missing_citation}\n')
 
-
         # definitions
-
-        all_links = re.findall(r'\[\[(.*?)\]\]', lines)
-        definitions = []
-        missing_definitions = []
-
-        for link in all_links:
-            split = link.split('|')
-            id = split[0]
-            # replace all whitespaces and non alphanumeric with, also all lowercase
-            id_cleaned = re.sub(r'\W+', '', id).lower()
-            used_form = split[-1]
-
-            definition = hunt_term(id)
-            # only replace if we found a definition
-            # otherwise replace only the markdown link
-            if definition:
-                replace_with = f'<a href="#definition-{id_cleaned}">{used_form}</a>'
-                lines = lines.replace(f'[[{link}]]', replace_with)
-
-                definition = f'<dfn id="definition-{id_cleaned}">{id}:{definition}</dfn>'
-                definitions.append(definition)
-            else:
-                replace_with = f'{used_form}'
-                lines = lines.replace(f'[[{link}]]', replace_with)
-
-                missing_definitions.append(id)
+        lines, definitions, missing_definitions = expand_terms(lines)
 
         with open(MISSING_DEFINITIONS, "w") as missing_def_file:
             for missing_definition in missing_definitions:
@@ -93,6 +45,63 @@ def main():
             for citation in citations:
                 write_file.write('- ' + citation)
                 write_file.write("\n")
+
+
+def expand_citations(text):
+    citations = []
+    missing_citations = []
+    citation_counter = 0
+    # citations
+    all_citations = re.findall(r'\@\[\[(.*?)\]\]', text)
+    for citation in all_citations:
+        print("doing citation", citation)
+        cited_file = citation.split('|')[0]
+        id_cleaned = re.sub(r'\W+', '', cited_file).lower()
+
+        citation = hunt_citation(cited_file)
+        print("got citation", citation)
+
+        if citation:
+            definition = f'<dfn id="citation-{id_cleaned}">**[{citation_counter}]** {citation}</dfn>'
+            citations.append(definition)
+        else:
+            missing_citations.append(cited_file)
+
+        replace_with = f'<a href="#citation-{id_cleaned}">[{citation_counter}]</a>'
+        text = text.replace(f'@[[{citation}]]', replace_with)
+        citation_counter += 1
+
+    return text, citations, missing_citations
+
+def expand_terms(text):
+    all_links = re.findall(r'\[\[(.*?)\]\]', text)
+    definitions = []
+    missing_definitions = []
+
+    for link in all_links:
+        split = link.split('|')
+        id = split[0]
+        # replace all whitespaces and non alphanumeric with, also all lowercase
+        id_cleaned = re.sub(r'\W+', '', id).lower()
+        used_form = split[-1]
+
+        definition = hunt_term(id)
+        # only replace if we found a definition
+        # otherwise replace only the markdown link
+        if definition:
+            replace_with = f'<a href="#definition-{id_cleaned}">{used_form}</a>'
+            text = text.replace(f'[[{link}]]', replace_with)
+
+            definition = f'<dfn id="definition-{id_cleaned}">{id}:{definition}</dfn>'
+            definitions.append(definition)
+        else:
+            replace_with = f'{used_form}'
+            text = text.replace(f'[[{link}]]', replace_with)
+
+            missing_definitions.append(id)
+
+    return text, definitions, missing_definitions
+
 
 
 def hunt_citation(cited_file):
