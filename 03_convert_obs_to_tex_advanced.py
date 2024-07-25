@@ -2,7 +2,7 @@ import yaml
 import os
 import re
 
-OBS_PATH =  '/home/b/MEGA/Obsidian/Zettelkasten'
+OBS_PATH =  '/home/b/MEGA/Obsidian/Zettelkasten/'
 OBS_FILE =  'thesis expose 3rd draft.md'
 OUT_DIR = 'output'
 OUT_TEX =  'expose.tex'
@@ -60,22 +60,6 @@ def main():
         
         with open(os.path.join(OUT_DIR, OUT_TEX), "w") as write_file:
             write_file.write(obs)
-            
-            write_file.write("\n\n")
-            write_file.write("## Terms")
-            write_file.write("\n\n")
-
-            for key, definition in definitions.items():
-                write_file.write('- ' + definition)
-                write_file.write("\n")
-
-            write_file.write("\n\n")
-            write_file.write("## Citations")
-            write_file.write("\n\n")
-
-            for key, citation in citations.items():
-                write_file.write('- ' + citation)
-                write_file.write("\n")
 
 
     # Convert the markdown to tex
@@ -114,26 +98,20 @@ def replace_links_to_chapters(obs):
 def expand_citations(text):
     citations = {}
     missing_citations = []
-    citation_counter = 0
     # citations
     all_citations = re.findall(r'\@\[\[(.*?)\]\]', text)
     for citation in all_citations:
         print("doing citation", citation)
         cited_file = citation.split('|')[0]
-        id_cleaned = re.sub(r'\W+', '', cited_file).lower()
 
         print_citation = hunt_citation(cited_file)
 
-        if citation:
-            definition = f'<dfn id="citation-{id_cleaned}">**[{citation_counter}]** {print_citation}</dfn>'
-            citations[id_cleaned] = definition
-        else:
+        if not citation:
             missing_citations.append(cited_file)
 
-        replace_with = f'<a href="#citation-{id_cleaned}">[{citation_counter}]</a>'
+        replace_with = '\cite{' + print_citation + '}'
         search_term = f'@[[{citation}]]'
         text = text.replace(search_term, replace_with)
-        citation_counter += 1
 
     return text, citations, missing_citations
 
@@ -174,7 +152,8 @@ def hunt_citation(cited_file):
     # if file does not exist, immediately return Null
     file_path = OBS_PATH + cited_file + ".md"
     if not os.path.isfile(file_path):
-        return None
+        print(f"file {file_path} not found")
+        return ""
     with open(file_path, "r") as f:
         # go through obs until you find 'citation:'
         # after that, integrate properties into dict
@@ -190,23 +169,9 @@ def hunt_citation(cited_file):
                     key, value = line.split(':')[0], ":".join(line.split(':')[1:])
                     citation_data[key.strip()] = value.replace("'", "").strip()
         if citation_found:
-            citation_string = f"*{citation_data['title']}*"
-            if 'author' in citation_data:
-                citation_string += f", {citation_data['author']}"
-            if 'year' in citation_data:
-                citation_string += f", {citation_data['year']}"
-            if 'journal' in citation_data:
-                citation_string += f", {citation_data['journal']}"
-            if 'doi' in citation_data:
-                citation_string += f", <https://doi.org/{citation_data['doi']}>"
-            if 'url' in  citation_data:
-                citation_string += f", <{citation_data['url']}>"
-            if 'note' in citation_data:
-                citation_string += f", {citation_data['note']}"
-
-            return citation_string
-        else:
-            return None
+            if 'key' in citation_data:
+                return citation_data['key']
+        return ""
 
 def hunt_term(cited_file):
         # same as hunt_citation, but we're looking for a definition
