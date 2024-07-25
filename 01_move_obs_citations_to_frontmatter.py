@@ -68,7 +68,7 @@ def main():
                                             key = citation_line.split("=")[0].strip()
                                             print("split = :", citation_line.split("="))
                                             value = citation_line.split("=")[1].strip().replace("},", "").replace("{", "").replace("}", "")
-                                            write_file.write(f"    {key}: '{value}'\n")
+                                            write_file.write(f'    {key}: "{value}"\n')
                             write_file.write(line)
                     
 

@@ -26,37 +26,9 @@ def main():
         # acronyms
         # (special type of definition)
         obs, definitions, missing_definitions = expand_acronyms(obs)
-
         # definitions
         obs, definitions, missing_definitions = expand_terms(obs)
 
-        # terms may include more terms, or citations, so continously expand
-        # check if '[[' anywhere in the values of definitions dict: NOW:!!!
-        while any('[[' in value for value in definitions.values()):
-            print("continously expanding")
-            for key, value in definitions.items():
-                if '@[[' in value:
-                    print("found a citation")
-                    new_definition, new_citations, new_missing_citations = expand_citations(value)
-                    definitions[key] = new_definition
-                    for new_key, new_value in new_citations.items():
-                        # only if not in dict already, add
-                        if new_key not in citations:
-                            citations[new_key] = new_value
-                            print("added new citation", new_key)
-                    missing_citations += new_missing_citations
-                    continue
-                if '[[' in value:
-                    print("found a term")
-                    new_definition, new_definitions, new_missing_definitions = expand_terms(value)
-                    definitions[key] = new_definition
-                    for new_key, new_value in new_definitions.items():
-                        # only if not in dict already, add
-                        if new_key not in definitions:
-                            definitions[new_key] = new_value
-                    missing_definitions += new_missing_definitions
-
-                
 
         with open(MISSING_DEFINITIONS, "w") as missing_def_file:
             for missing_definition in missing_definitions:
@@ -138,19 +110,19 @@ def expand_terms(text):
         used_form = split[-1]
 
         definition = hunt_term(id)
-        # only replace if we found a definition
-        # otherwise replace only the markdown link
-        if definition:
-            replace_with = f'<a href="#definition-{id_cleaned}">{used_form}</a>'
-            text = text.replace(f'[[{link}]]', replace_with)
-
-            definition = f'<dfn id="definition-{id_cleaned}">{id}:{definition}</dfn>'
-            definitions[id_cleaned] = definition
-        else:
-            replace_with = f'{used_form}'
-            text = text.replace(f'[[{link}]]', replace_with)
-
+        if not definition:
             missing_definitions.append(id)
+        
+        glossary_entry = f'\\newglossaryentry{{{id_cleaned}}}\n'
+        glossary_entry += '{\n'
+        # uppercase the name 
+        glossary_entry += f'    name={{{id.capitalize()}}},\n'
+        glossary_entry += f'    description={{{definition}}},\n'
+        glossary_entry += '}\n'
+
+        definitions[id_cleaned] = glossary_entry
+        replace_with = '\glslink{' + id_cleaned + '}{' + used_form + '}'
+        text = text.replace(f'[[{link}]]', replace_with)
 
     return text, definitions, missing_definitions
 
@@ -226,7 +198,7 @@ def hunt_term(cited_file):
         # which is marked by being the first line starting with "- *" and ending with "*"
         file_path = OBS_PATH + cited_file + ".md"
         if not os.path.isfile(file_path):
-            return None
+            return ""
         with open(file_path, "r") as f:
             for line in f:
                 if '- **' in line:
