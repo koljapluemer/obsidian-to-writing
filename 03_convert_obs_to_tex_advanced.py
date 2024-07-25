@@ -5,7 +5,7 @@ import re
 OBS_PATH =  '/home/b/MEGA/Obsidian/Zettelkasten/'
 OBS_FILE =  'thesis expose 3rd draft.md'
 OUT_DIR = 'output'
-OUT_TEX =  'expose.tex'
+OUT_TEX =  'expose.md'
 OUT_BIB = 'bibliography.tex'
 OUT_GLOSSARY = 'glossary.tex'
 
@@ -62,12 +62,6 @@ def convert_md_to_tex(obs):
     obs = re.sub(r'^### (.*)$', r'\\subsubsection{\1}\n\\label{chap:\1}', obs, flags=re.MULTILINE)
     obs = re.sub(r'^## (.*)$', r'\\subsection{\1}\n\\label{chap:\1}', obs, flags=re.MULTILINE)
     obs = re.sub(r'^# (.*)$', r'\\section{\1}\n\\label{chap:\1}', obs, flags=re.MULTILINE)
-
-    # replace bold and italic, and `` with texttt
-    obs = re.sub(r'\*\*(.*)\*\*', r'\\textbf{\1}', obs)
-    obs = re.sub(r'\*(.*)\*', r'\\textit{\1}', obs)
-    obs = re.sub(r'``(.*)``', r'\\texttt{\1}', obs)
-
     return obs
 
 
@@ -112,16 +106,18 @@ def expand_terms(text):
         definition = hunt_term(id)
         if not definition:
             missing_definitions.append(id)
-        
-        glossary_entry = f'\\newglossaryentry{{{id_cleaned}}}\n'
-        glossary_entry += '{\n'
-        # uppercase the name 
-        glossary_entry += f'    name={{{id.capitalize()}}},\n'
-        glossary_entry += f'    description={{{definition}}},\n'
-        glossary_entry += '}\n'
+            replace_with = used_form
+        else:
+            glossary_entry = f'\\newglossaryentry{{{id_cleaned}}}\n'
+            glossary_entry += '{\n'
+            # uppercase the name 
+            glossary_entry += f'    name={{{id.capitalize()}}},\n'
+            glossary_entry += f'    description={{{definition}}},\n'
+            glossary_entry += '}\n'
 
-        definitions[id_cleaned] = glossary_entry
-        replace_with = '\glslink{' + id_cleaned + '}{' + used_form + '}'
+            definitions[id_cleaned] = glossary_entry
+            replace_with = '\glslink{' + id_cleaned + '}{' + used_form + '}'
+
         text = text.replace(f'[[{link}]]', replace_with)
 
     return text, definitions, missing_definitions
