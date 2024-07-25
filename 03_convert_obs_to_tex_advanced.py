@@ -24,13 +24,16 @@ def main():
         f.write(tex)
 
 def convert_md_to_tex(obs):
+
+    obs = replace_links_to_chapters(obs)
+
     obs = obs.split('---')[-1]
     # replace headers with wrapping tags like subparagraph{}:
-    obs = re.sub(r'^##### (.*)$', r'\\subparagraph{\1}', obs, flags=re.MULTILINE)
-    obs = re.sub(r'^#### (.*)$', r'\\paragraph{\1}', obs, flags=re.MULTILINE)
-    obs = re.sub(r'^### (.*)$', r'\\subsubsection{\1}', obs, flags=re.MULTILINE)
-    obs = re.sub(r'^## (.*)$', r'\\subsection{\1}', obs, flags=re.MULTILINE)
-    obs = re.sub(r'^# (.*)$', r'\\section{\1}', obs, flags=re.MULTILINE)
+    obs = re.sub(r'^##### (.*)$', r'\\subparagraph{\1}\n\\label{chap:\1}', obs, flags=re.MULTILINE)
+    obs = re.sub(r'^#### (.*)$', r'\\paragraph{\1}\n\\label{chap:\1}', obs, flags=re.MULTILINE)
+    obs = re.sub(r'^### (.*)$', r'\\subsubsection{\1}\n\\label{chap:\1}', obs, flags=re.MULTILINE)
+    obs = re.sub(r'^## (.*)$', r'\\subsection{\1}\n\\label{chap:\1}', obs, flags=re.MULTILINE)
+    obs = re.sub(r'^# (.*)$', r'\\section{\1}\n\\label{chap:\1}', obs, flags=re.MULTILINE)
 
     # replace bold and italic, and `` with texttt
     obs = re.sub(r'\*\*(.*)\*\*', r'\\textbf{\1}', obs)
@@ -39,6 +42,11 @@ def convert_md_to_tex(obs):
 
     return obs
 
+
+def replace_links_to_chapters(obs):
+    # replace links to chapters with \ref{chap:}
+    obs = re.sub(r'\[\[#(.*)\]\]', r'\\autoref{chap:\1}', obs)
+    return obs
 
 
 
