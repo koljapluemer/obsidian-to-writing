@@ -25,10 +25,19 @@ def main():
         while any('[[' in value for value in definitions.values()):
             print("continously expanding")
             for key, value in definitions.items():
-                print("key", key)
-                print("value", value)
+                if '@[[' in value:
+                    print("found a citation")
+                    new_definition, new_citations, new_missing_citations = expand_citations(value)
+                    definitions[key] = new_definition
+                    for new_key, new_value in new_citations.items():
+                        # only if not in dict already, add
+                        if new_key not in citations:
+                            citations[new_key] = new_value
+                            print("added new citation", new_key)
+                    missing_citations += new_missing_citations
+                    continue
                 if '[[' in value:
-                    print("found a link")
+                    print("found a term")
                     new_definition, new_definitions, new_missing_definitions = expand_terms(value)
                     definitions[key] = new_definition
                     for new_key, new_value in new_definitions.items():
@@ -36,8 +45,6 @@ def main():
                         if new_key not in definitions:
                             definitions[new_key] = new_value
                     missing_definitions += new_missing_definitions
-
-
 
                 
 
@@ -89,7 +96,6 @@ def expand_citations(text):
         text = text.replace(search_term, replace_with)
         citation_counter += 1
 
-    # print(text)
     return text, citations, missing_citations
 
 def expand_terms(text):
@@ -136,7 +142,6 @@ def hunt_citation(cited_file):
         citation_found = False
         citation_data = {}
         for line in f:
-            # print("line", line)
             if 'citation:' in line:
                 citation_found = True
             if citation_found:
@@ -144,7 +149,7 @@ def hunt_citation(cited_file):
                     break
                 if ':' in line:
                     key, value = line.split(':')[0], ":".join(line.split(':')[1:])
-                    citation_data[key.strip()] = value.strip()
+                    citation_data[key.strip()] = value.replace("'", "").strip()
         if citation_found:
             citation_string = f"*{citation_data['title']}*"
             if 'author' in citation_data:
@@ -172,7 +177,6 @@ def hunt_term(cited_file):
             return None
         with open(file_path, "r") as f:
             for line in f:
-                # print("line", line)
                 if '- *' in line:
                     return line[1:]
             return None
