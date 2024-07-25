@@ -23,6 +23,10 @@ def main():
             for missing_citation in missing_citations:
                 missing_cite_file.write(f'- [ ] {missing_citation}\n')
 
+        # acronyms
+        # (special type of definition)
+        obs, definitions, missing_definitions = expand_acronyms(obs)
+
         # definitions
         obs, definitions, missing_definitions = expand_terms(obs)
 
@@ -57,6 +61,12 @@ def main():
         with open(MISSING_DEFINITIONS, "w") as missing_def_file:
             for missing_definition in missing_definitions:
                 missing_def_file.write(f'- [ ] {missing_definition}\n')
+
+        # GLOSSARY
+        with open(os.path.join(OUT_DIR, OUT_GLOSSARY), "w") as glossary_file:
+            for key, definition in definitions.items():
+                glossary_file.write(definition)
+                glossary_file.write("\n")
         
         with open(os.path.join(OUT_DIR, OUT_TEX), "w") as write_file:
             write_file.write(obs)
@@ -144,7 +154,45 @@ def expand_terms(text):
 
     return text, definitions, missing_definitions
 
+def expand_acronyms(text):
+    #     \newglossaryentry{CALL}
+    # {
+    #     name={call},
+    #     description={An Application Programming Interface (API) is a particular set
+    #             of rules and specifications that a software program can follow to access and make use of the services and resources provided by another particular software program that implements that API},
+    #     first={Computer-Assisted Language Learning (CALL)},
+    #     long={Computer-Assisted Language Learning}
+    # }
+    all_links = re.findall(r'#\[\[(.*?)\]\]', text)
+    definitions = {}
+    missing_definitions = []
 
+    for link in all_links:
+        split = link.split('|')
+        id = split[-1]
+        # replace all whitespaces and non alphanumeric with, also all lowercase
+        id_cleaned = re.sub(r'\W+', '', id).lower()
+        used_form = split[-1]
+
+        definition = hunt_term(id)
+        # Acronyms are always replaced, we are expecting to just always be #[[Artificial Intelligence|AI]]
+        replace_with = '\Gls{' + id_cleaned + '}'
+        text = text.replace(f'#[[{link}]]', replace_with)
+        # If definition also exists, nice, add that (but only to the glossary, in-text nothing changes)
+        glossary_entry = f'\\newglossaryentry{{{id_cleaned}}}\n'
+        glossary_entry += '{\n'
+        glossary_entry += f'    name={{{id}}},\n'
+        glossary_entry += f'    description={{{definition}}},\n'
+        # first: "$id ($used_form)"
+        glossary_entry +=  '    first={' + id + ' (' + used_form + ')},\n'
+        glossary_entry += f'    long={{{used_form}}}\n'
+        glossary_entry += '}\n'
+        definitions[id_cleaned] = glossary_entry
+
+        if not definition:
+            missing_definitions.append(id)
+
+    return text, definitions, missing_definitions
 
 def hunt_citation(cited_file):
     # TODO: make this recursive
@@ -181,9 +229,9 @@ def hunt_term(cited_file):
             return None
         with open(file_path, "r") as f:
             for line in f:
-                if '- *' in line:
-                    return line[1:]
-            return None
+                if '- **' in line:
+                    return line[1:].replace("**", "").strip()
+            return ""
 
 
 if __name__ == '__main__':
